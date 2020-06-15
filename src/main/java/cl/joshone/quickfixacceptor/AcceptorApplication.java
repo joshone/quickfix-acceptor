@@ -96,7 +96,7 @@ public class AcceptorApplication extends MessageCracker implements Application{
 		logger.info("toApp {}, {}", message, sessionID);
 		try {
 			//messages.add(message, false, dictionary, sessionID);
-			sendMessage();
+			//sendMessage();
 			Thread.sleep(5000);
             crack(message, sessionID);
         } catch (Exception e) {	e.printStackTrace(); }
