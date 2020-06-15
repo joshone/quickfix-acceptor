@@ -1,5 +1,10 @@
 package cl.joshone.quickfixacceptor;
 
+import java.util.Date;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import quickfix.Application;
 import quickfix.DataDictionary;
 import quickfix.DoNotSend;
@@ -7,7 +12,8 @@ import quickfix.FieldNotFound;
 import quickfix.IncorrectDataFormat;
 import quickfix.IncorrectTagValue;
 import quickfix.Message;
-import quickfix.MessageCracker;
+import quickfix.fix44.MessageCracker;
+import quickfix.fix44.NewOrderSingle;
 import quickfix.RejectLogon;
 import quickfix.Session;
 import quickfix.SessionID;
@@ -18,85 +24,103 @@ import quickfix.Message.Header;
 import quickfix.field.ClOrdID;
 import quickfix.field.OnBehalfOfCompID;
 import quickfix.field.OnBehalfOfSubID;
+import quickfix.field.OrdType;
+import quickfix.field.OrderQty;
 import quickfix.field.OrigClOrdID;
+import quickfix.field.Price;
 import quickfix.field.SecurityType;
 import quickfix.field.Side;
 import quickfix.field.Symbol;
 import quickfix.field.Text;
+import quickfix.field.TransactTime;
 
 public class AcceptorApplication extends MessageCracker implements Application{
+	private static final Logger logger = LoggerFactory.getLogger(AcceptorApplication.class);
 	
 	private boolean connected;
 	private DataDictionary dictionary;
 	private SessionID currentSession;
-	private LogMessageSet messages;
+	//private LogMessageSet messages;
 	private SessionSettings settings;
-	private ExecutionSet executions = null;
+	//private ExecutionSet executions = null;
 
 	@Override
-	public void fromAdmin(Message arg0, SessionID arg1)
+	public void fromAdmin(Message message, SessionID sessionID)
 			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue, RejectLogon {
-		System.out.println("fromAdmin");
+
+				logger.info("fromAdmin {}, {}", message, sessionID);
 		
 	}
 
 	@Override
 	public void fromApp(Message message, SessionID sessionID)
 			throws FieldNotFound, IncorrectDataFormat, IncorrectTagValue, UnsupportedMessageType {
-		System.out.println("fromApp");
-		messages.add(message, true, dictionary, sessionID);
+				logger.info("fromApp {}, {}", message, sessionID);
+		//messages.add(message, true, dictionary, sessionID);
         crack(message, sessionID);
 		
 	}
 
 	@Override
-	public void onCreate(SessionID arg0) {
-		System.out.println("onCreate");
+	public void onCreate(SessionID sessionID) {
+		logger.info("onCreate {} ", sessionID);
 		
 	}
 
 	@Override
 	public void onLogon(SessionID sessionID) {
+		logger.info("onlogon {}", sessionID);
 		connected = true;
 		currentSession = sessionID;
 		dictionary = Session.lookupSession(currentSession).getDataDictionary();
-		System.out.println("onlogon");
+		
 		
 	}
 
 	@Override
-	public void onLogout(SessionID arg0) {
+	public void onLogout(SessionID sessionID) {
 		connected = false;
 		currentSession = null;
-		System.out.println("onLogout");
+		logger.info("onLogout {} ", sessionID);
 		
 	}
 
 	@Override
-	public void toAdmin(Message arg0, SessionID arg1) {
-		System.out.println("toAdmin");
+	public void toAdmin(Message message, SessionID sessionID) {
+		logger.info("toAdmin {}, {}", message, sessionID);
 		
 	}
 
 	@Override
 	public void toApp(Message message, SessionID sessionID) throws DoNotSend {
-		System.out.println("toApp");
+		logger.info("toApp {}, {}", message, sessionID);
 		try {
-            messages.add(message, false, dictionary, sessionID);
+			//messages.add(message, false, dictionary, sessionID);
+			sendMessage();
             crack(message, sessionID);
         } catch (Exception e) {	e.printStackTrace(); }
 		
 	}
 
-	@Override
-	protected void onMessage(Message message, SessionID sessionID)
-			throws FieldNotFound, UnsupportedMessageType, IncorrectTagValue {
-		// TODO Auto-generated method stub
-		super.onMessage(message, sessionID);
+	public void sendMessage(){
+
+		NewOrderSingle order = new NewOrderSingle(
+						new ClOrdID("APPL12456S"),
+						new Side(Side.BUY),
+						new TransactTime(new Date()), 
+						new OrdType(OrdType.MARKET));
+				
+				order.set(new OrderQty(4500));
+				order.set(new Price(200.9d));
+		try {
+            Session.sendToTarget( order, currentSession );
+        } catch ( SessionNotFound e ) { e.printStackTrace(); }
 	}
 
+	
+
 	// Message sending methods
-    public void sendMessage( Message message ) {
+    /*public void sendMessage( Message message ) {
         String oboCompID = "<UNKNOWN>";
         String oboSubID = "<UNKNOWN>";
         boolean sendoboCompID = false;
@@ -127,7 +151,7 @@ public class AcceptorApplication extends MessageCracker implements Application{
         try {
             Session.sendToTarget( message, currentSession );
         } catch ( SessionNotFound e ) { e.printStackTrace(); }
-	}
+	}*/
 	
 	void sendOrderCancel() throws SessionNotFound{
 

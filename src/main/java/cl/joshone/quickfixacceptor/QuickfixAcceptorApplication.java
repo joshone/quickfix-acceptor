@@ -1,5 +1,7 @@
 package cl.joshone.quickfixacceptor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -15,7 +17,9 @@ import quickfix.Message.Header;
 import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
 import quickfix.RuntimeError;
+import quickfix.ScreenLogFactory;
 import quickfix.Session;
+import quickfix.SessionID;
 import quickfix.SessionNotFound;
 import quickfix.SessionSettings;
 import quickfix.SocketAcceptor;
@@ -23,9 +27,8 @@ import quickfix.field.BeginString;
 
 @SpringBootApplication
 public class QuickfixAcceptorApplication {
+	private static final Logger logger = LoggerFactory.getLogger(QuickfixAcceptorApplication.class);
 	
-	private static LogMessageSet messages = null;
-
 	public static void main(String[] args) {
 		
 		String fileName = "./acceptorSettings.cfg";
@@ -42,13 +45,14 @@ public class QuickfixAcceptorApplication {
 			e1.printStackTrace();
 		}
 	    MessageStoreFactory storeFactory = new FileStoreFactory(settings);
-	    LogFactory logFactory = new FileLogFactory(settings);
+		LogFactory logFactory = new FileLogFactory(settings);
+		ScreenLogFactory screenLogFactory = new ScreenLogFactory(settings);
 	    MessageFactory messageFactory = new DefaultMessageFactory();
 	    Acceptor acceptor = null;
 	    
 		try {
 			acceptor = new SocketAcceptor
-			  (application, storeFactory, settings, logFactory, messageFactory);
+			  (application, storeFactory, settings, screenLogFactory, messageFactory);
 		} catch (ConfigError e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -60,28 +64,26 @@ public class QuickfixAcceptorApplication {
 			e.printStackTrace();
 		}
 	     while(true) { 
-//	    	 SessionID session =  acceptor.getSessions().get(0);
+	    	 SessionID session =  acceptor.getSessions().get(0);
 	    	 
-//	    	 Message m = new Message();
-//	    	 Header header = m.getHeader();
-//	    	 header.setField(new BeginString("FIX.4.4"));
-//	    	 
-//	    	 try {
-//				Session.sendToTarget(m);
-//			} catch (SessionNotFound e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
+			 Message m = new Message();
+			 
+			 Header header = m.getHeader();
+			 //header.set(new quickfix.field.MsgType("A"));
+			 header.setField(new BeginString("FIX.4.4"));
+			 
+	    	 
+	    	 /*try {
+				Session.sendToTarget(m, session);
+			} catch (SessionNotFound e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}*/
 	    	 
 	    	 
 	     }
 //	    acceptor.stop();
 	}
-
-	public static LogMessageSet getMessagesSet() {
-		return messages;
-	}
-	
 	
 
 }
